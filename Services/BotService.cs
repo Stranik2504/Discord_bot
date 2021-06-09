@@ -23,11 +23,6 @@ namespace Discord_Bot.Services
         {
             _services = ConfigureServices();
 
-            var _lavaConfig = _services.GetRequiredService<LavaConfig>();
-            _lavaConfig.Port = 55674;
-            _lavaConfig.Hostname = "149.154.69.80";
-            _lavaConfig.LogSeverity = LogSeverity.Info;
-
             _client = _services.GetRequiredService<DiscordSocketClient>();
             _commandHandler = _services.GetRequiredService<CommandHandler>();
             _lavaNode = _services.GetRequiredService<LavaNode>();
@@ -75,8 +70,12 @@ namespace Discord_Bot.Services
                 .AddSingleton<DiscordSocketClient>()
                 .AddSingleton<CommandService>()
                 .AddSingleton<CommandHandler>()
-                .AddSingleton<LavaNode>()
-                .AddSingleton<LavaConfig>()
+                .AddLavaNode(x =>
+                {
+                    x.SelfDeaf = true;
+                    //x.Authorization = "notarealpassword";
+                    x.LogSeverity = LogSeverity.Debug;
+                })
                 .AddSingleton<LavaLinkAudio>()
                 .AddSingleton<BotService>()
                 .AddSingleton<GlobalData>()
