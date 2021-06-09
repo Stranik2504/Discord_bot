@@ -73,7 +73,8 @@ namespace Discord_Bot.Services
                 .AddLavaNode(x =>
                 {
                     x.SelfDeaf = true;
-                    //x.Authorization = "notarealpassword";
+                    x.IsSSL = false;
+                    x.Authorization = "Basic YWxhZGRpbjpvcGVuc2VzYW1l";
                     x.LogSeverity = LogSeverity.Debug;
                 })
                 .AddSingleton<LavaLinkAudio>()
