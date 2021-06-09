@@ -56,7 +56,7 @@ namespace Discord_Bot.Services
                 var player = _lavaNode.GetPlayer(guild);
                 LavaTrack track;
 
-                var search = Uri.IsWellFormedUriString(query, UriKind.Absolute) ? await _lavaNode.SearchAsync(query) : await _lavaNode.SearchYouTubeAsync(query);
+                var search = await _lavaNode.SearchAsync(query);
 
                 if (search.LoadStatus == LoadStatus.NoMatches)
                     return await EmbedHandler.CreateErrorEmbed(nameCommand, $"I wasn't able to find anything for {query}.");
