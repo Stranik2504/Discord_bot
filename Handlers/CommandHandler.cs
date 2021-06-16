@@ -31,6 +31,8 @@ namespace Discord_Bot.Handlers
             await _commands.AddModulesAsync(
                 assembly: Assembly.GetEntryAssembly(),
                 services: _services);
+
+            _commands.Commands.ToList().ForEach(x => System.Diagnostics.Debug.WriteLine(x.Module.Name));
         }
 
         public void HookEvents()

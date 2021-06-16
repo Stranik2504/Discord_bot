@@ -1,7 +1,8 @@
 ﻿using Discord;
+using Discord.Commands;
 using Discord.WebSocket;
 using Discord_Bot.Handlers;
-using Discord_Bot.Structs;
+using Discord_Bot.Modules;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -38,16 +39,17 @@ namespace Discord_Bot.Services
             catch (Exception ex) { return await EmbedHandler.CreateErrorEmbed(nameCommand, ex.Message); }
         }
 
-        public async Task<object> PlayAsync(IGuild guild, IVoiceChannel voiceChannel, string query)
+        public async Task<object> PlayAsync(SocketCommandContext context, IVoiceChannel voiceChannel, string query)
         {
             var nameCommand = "play command";
+            var guild = context.Guild;
 
             if (voiceChannel == null)
                 return await EmbedHandler.CreateErrorEmbed(nameCommand, "You must first join a voice channel.");
 
             if (!_lavaNode.HasPlayer(guild))
                 if (voiceChannel != null)
-                    await _lavaNode.JoinAsync(voiceChannel);
+                    await _lavaNode.JoinAsync(voiceChannel, context.Channel as ITextChannel);
                 else
                     return await EmbedHandler.CreateErrorEmbed(nameCommand, "I'm not connected to a voice channel.");
 
@@ -68,7 +70,13 @@ namespace Discord_Bot.Services
                 if (tracks == null || tracks.Count == 0) 
                     return await EmbedHandler.CreateErrorEmbed(nameCommand, $"I wasn't able to find anything for {query}.");
 
-                tracks.ToList().ForEach(x => player.Queue.Enqueue(x));
+                if (search.Playlist.Name != null)
+                    tracks.ToList().ForEach(x => player.Queue.Enqueue(x));
+                else if (tracks.Count > 1)
+                {
+                    player.Queue.Enqueue(tracks.First());
+                    //TODO: добавить выбор песен
+                }
 
                 if (player.Track != null && player.PlayerState is PlayerState.Playing || player.PlayerState is PlayerState.Paused)
                 {
@@ -80,15 +88,20 @@ namespace Discord_Bot.Services
                     else
                     {
                         await LoggingService.LogInformationAsync(nameCommand, $"Playlist {search.Playlist.Name} has been added to the music queue.");
-                        return await EmbedHandler.CreateMusicEmbed(search.Playlist.Name, tracks.FirstOrDefault().Url, default, player.Queue.Count.ToString(), tracks.Count, Color.Green);
+                        return await EmbedHandler.CreateMusicEmbed(search.Playlist.Name, default, default, player.Queue.Count.ToString(), tracks.Count, Color.Green);
                     }
                 }
 
                 player.Queue.TryDequeue(out LavaTrack track);
                 await player.PlayAsync(track);
 
-                await player.PlayAsync(track);
-                await LoggingService.LogInformationAsync(nameCommand, $"Bot Now Playing: {track.Title}\nUrl: {track.Url}");
+                if (search.Playlist.Name != null)
+                {
+                    await LoggingService.LogInformationAsync(nameCommand, $"Playlist {search.Playlist.Name} has been added to the music queue.");
+                    await Music_Modules.Print(context, await EmbedHandler.CreateMusicEmbed(search.Playlist.Name, default, default, (player.Queue.Count - tracks.Count + 1).ToString(), tracks.Count, Color.Green));
+                }
+
+                await LoggingService.LogInformationAsync(nameCommand, $"Bot Now Playing: {track.Title}; Url: {track.Url}");
                 return await EmbedHandler.CreatePlayingEmbed(track.Title, track.Url, track.Duration.ToString(), track.Author, Color.Blue);
             }
             catch (Exception ex) { return await EmbedHandler.CreateErrorEmbed(nameCommand, ex.Message); }
@@ -122,8 +135,8 @@ namespace Discord_Bot.Services
             try
             {
                 var descriptionBuilder = new StringBuilder();
+                var descriptionBuilderOutput = new StringBuilder();
 
-                
                 if (!_lavaNode.HasPlayer(guild))
                     return await EmbedHandler.CreateErrorEmbed(nameCommand, "I'm not connected to a voice channel.");
 
@@ -138,9 +151,13 @@ namespace Discord_Bot.Services
                     {
                         descriptionBuilder.Append($"{trackNum}: [{track.Title}]({track.Url})\n");
                         trackNum++;
+
+                        if (trackNum == 10 || descriptionBuilder.Capacity >= 2048) break;
+
+                        descriptionBuilderOutput.Append($"{trackNum - 1}: [{track.Title}]({track.Url})\n");
                     }
 
-                    return await EmbedHandler.CreateBasicEmbed(nameCommand, $"List to play: [{player.Track.Title}]({player.Track.Url}) \n{descriptionBuilder}", Color.Blue);
+                    return await EmbedHandler.CreateBasicEmbed("Queue", $"List to play: \n1: [{player.Track.Title}]({player.Track.Url}) \n{descriptionBuilderOutput}", Color.Blue);
                 }
 
                 return "Player doesn't seem to be playing anything right now";
@@ -148,7 +165,7 @@ namespace Discord_Bot.Services
             catch (Exception ex) { return await EmbedHandler.CreateErrorEmbed(nameCommand, ex.Message); }
         }
 
-        public async Task<object> SkipTrackAsync(IGuild guild)
+        public async Task<object> SkipTrackAsync(IGuild guild, int count)
         {
             var nameCommand = "skip command";
 
@@ -163,11 +180,21 @@ namespace Discord_Bot.Services
 
                 try
                 {
-                    var currentTrack = player.Track;
-                    await player.SkipAsync();
+                    if (count == 1)
+                    {
+                        var currentTrack = player.Track;
+                        await player.SkipAsync();
 
-                    await LoggingService.LogInformationAsync(nameCommand, $"Bot skipped: {currentTrack.Title}");
-                    return "I have skiped {currentTrack.Title}";
+                        await LoggingService.LogInformationAsync(nameCommand, $"Bot skipped: {currentTrack.Title}");
+                        return $"I have skiped {currentTrack.Title}";
+                    }
+                    else
+                    {
+                        for (int i = 0; i < count; i++) { if (player.Queue.Count > 0) await player.SkipAsync(); else break; }
+
+                        await LoggingService.LogInformationAsync(nameCommand, $"Bot skipped: {count} tracks");
+                        return $"I have skiped {count} tracks";
+                    }
                 }
                 catch (Exception ex) { return await EmbedHandler.CreateErrorEmbed(nameCommand, ex.Message); }
             }
@@ -274,8 +301,10 @@ namespace Discord_Bot.Services
                 return;
             }
 
-            await args.Player.PlayAsync(track); 
-            await args.Player.TextChannel.SendMessageAsync(embed: await EmbedHandler.CreatePlayingEmbed(track.Title, track.Url, track.Duration.ToString(), track.Author, Color.Blue));
+            await args.Player.PlayAsync(track);
+
+            if (args.Player != null && args.Player.TextChannel != null && GlobalData.Config.GetNeedOutput(args.Player.VoiceChannel.GuildId))
+                await args.Player.TextChannel.SendMessageAsync(embed: await EmbedHandler.CreatePlayingEmbed(track.Title, track.Url, track.Duration.ToString(), track.Author, Color.Blue));
         }
 
         private ushort GetVolume(IGuild guild) => GlobalData.Config.GetVoulme(guild.Id);

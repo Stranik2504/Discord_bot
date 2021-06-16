@@ -10,14 +10,13 @@ namespace Discord_Bot.Structs
     {
         public string Token { get; set; }
         public string GameStatus { get; set; } = default;
-        public List<(ulong Id, string Prefix)> PrefixByGuild { get; set; } = new();
-        public List<(ulong Id, ushort Volume)> VolumeByGuild { get; set; } = new();
+        public List<(ulong Id, string Prefix, ushort Volume, bool OutputNameSongs)> ParamsByGuild { get; set; } = new();
 
         public string GetPrefix(ulong guildId)
         {
-            foreach (var (Id, Prefix) in PrefixByGuild) { if (Id == guildId) return Prefix; }
+            foreach (var (Id, Prefix, _, _) in ParamsByGuild) { if (Id == guildId) return Prefix; }
 
-            PrefixByGuild.Add((guildId, "!"));
+            ParamsByGuild.Add((guildId, "!", 100, false));
             return "!";
         }
 
@@ -25,14 +24,14 @@ namespace Discord_Bot.Structs
         {
             GetPrefix(guildId);
 
-            for (int i = 0; i < PrefixByGuild.Count; i++) { if (PrefixByGuild[i].Id == guildId) { PrefixByGuild[i] = (guildId, prefix); return; } }
+            for (int i = 0; i < ParamsByGuild.Count; i++) { if (ParamsByGuild[i].Id == guildId) { ParamsByGuild[i] = (guildId, prefix, ParamsByGuild[i].Volume, ParamsByGuild[i].OutputNameSongs); return; } }
         }
 
         public ushort GetVoulme(ulong guildId)
         {
-            foreach (var (Id, Volume) in VolumeByGuild) { if (Id == guildId) return Volume; }
+            foreach (var (Id, _, Volume, _) in ParamsByGuild) { if (Id == guildId) return Volume; }
 
-            VolumeByGuild.Add((guildId, 100));
+            ParamsByGuild.Add((guildId, "!", 100, false));
             return 100;
         }
 
@@ -40,7 +39,22 @@ namespace Discord_Bot.Structs
         {
             GetVoulme(guildId);
 
-            for (int i = 0; i < VolumeByGuild.Count; i++) { if (VolumeByGuild[i].Id == guildId) { VolumeByGuild[i] = (guildId, volume); return; } }
+            for (int i = 0; i < ParamsByGuild.Count; i++) { if (ParamsByGuild[i].Id == guildId) { ParamsByGuild[i] = (guildId, ParamsByGuild[i].Prefix, volume, ParamsByGuild[i].OutputNameSongs); return; } }
+        }
+
+        public bool GetNeedOutput(ulong guildId)
+        {
+            foreach (var (Id, _, _, OutputNameSongs) in ParamsByGuild) { if (Id == guildId) return OutputNameSongs; }
+
+            ParamsByGuild.Add((guildId, "!", 100, false));
+            return false;
+        }
+
+        public void SetNewNeedOutput(ulong guildId, bool outputNameSongs)
+        {
+            GetNeedOutput(guildId);
+
+            for (int i = 0; i < ParamsByGuild.Count; i++) { if (ParamsByGuild[i].Id == guildId) { ParamsByGuild[i] = (guildId, ParamsByGuild[i].Prefix, ParamsByGuild[i].Volume, outputNameSongs); return; } }
         }
     }
 }

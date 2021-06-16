@@ -12,6 +12,8 @@ namespace Discord_Bot.Modules
     public class Text_Modules : ModuleBase<SocketCommandContext>
     {
         [Command("ping")]
+        //[Alias("pong")]
+        //[Summary("ghj")]
         public async Task Pong()
         {
             await ReplyAsync("PONG!");
@@ -24,6 +26,21 @@ namespace Discord_Bot.Modules
             GlobalData.Save();
 
             await ReplyAsync("Prefix changed to " + prefix);
+        }
+
+        [Command("outputs")]
+        public async Task ChangeOutputNameSong(bool output)
+        {
+            GlobalData.Config.SetNewNeedOutput(Context.Guild.Id, output);
+            GlobalData.Save();
+
+            await ReplyAsync("Output name next song to " + output);
+        }
+
+        [Command("commands")]
+        public async Task Commands()
+        {
+            await ReplyAsync("LOL");
         }
     }
 }

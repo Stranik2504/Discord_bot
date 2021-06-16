@@ -20,7 +20,7 @@ namespace Discord_Bot.Handlers
             await Task.Run(() => {
                 var embed = new EmbedBuilder()
                 .WithTitle($"{(count == 1 ? "Song" : "Playlist")} added to queue");
-                if (url != "" && url != default) embed.WithDescription(title);
+                if (url == "" || url == default) embed.WithDescription(title);
                 else embed.WithDescription($"[{title}]({url})");
                 if (length != "" && length != default) embed.AddField("Length", length, true);
                 embed.AddField("Position", position, true)

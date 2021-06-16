@@ -31,6 +31,8 @@ namespace Discord_Bot.Handlers
 
             XmlSerializer xmlSerializer = new(typeof(Config));
             Config = (Config)xmlSerializer.Deserialize(stream);
+
+            stream.Close();
         }
 
         public static void Save()
@@ -39,6 +41,8 @@ namespace Discord_Bot.Handlers
 
             XmlSerializer xmlSerializer = new(typeof(Config));
             xmlSerializer.Serialize(stream, Config);
+
+            stream.Close();
         }
     }
 }

@@ -21,7 +21,7 @@ namespace Discord_Bot.Modules
         public async Task Leave() => await Output(await AudioService.LeaveAsync(Context.Guild));
 
         [Command("Play")]
-        public async Task Play([Remainder] string search) => await Output(await AudioService.PlayAsync(Context.Guild, (Context.User as SocketGuildUser).VoiceChannel, search));
+        public async Task Play([Remainder] string search) => await Output(await AudioService.PlayAsync(Context, (Context.User as SocketGuildUser).VoiceChannel, search));
 
         [Command("Stop")]
         public async Task Stop() => await Output(await AudioService.StopAsync(Context.Guild));
@@ -30,7 +30,7 @@ namespace Discord_Bot.Modules
         public async Task List() => await Output(await AudioService.ListAsync(Context.Guild));
 
         [Command("Skip")]
-        public async Task Skip() => await Output(await AudioService.SkipTrackAsync(Context.Guild));
+        public async Task Skip([Remainder] int count = 1) => await Output(await AudioService.SkipTrackAsync(Context.Guild, count));
 
         [Command("Volume")]
         public async Task Volume(int volume) => await Output(await AudioService.SetVolumeAsync(Context.Guild, volume));
@@ -40,6 +40,8 @@ namespace Discord_Bot.Modules
 
         [Command("Resume")]
         public async Task Resume() => await Output(await AudioService.ResumeAsync(Context.Guild));
+
+        public static async Task Print(SocketCommandContext context, Embed embed) => await context.Channel.SendMessageAsync(embed: embed);
 
         private async Task Output(object output)
         {
