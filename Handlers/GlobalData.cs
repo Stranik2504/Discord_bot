@@ -14,7 +14,7 @@ namespace Discord_Bot.Handlers
     {
         public static Config Config { get; set; }
 
-        private static string _path = "Config.conf";
+        private const string _path = "Config.conf";
 
         public async static Task LoadAsync()
         {
@@ -29,7 +29,7 @@ namespace Discord_Bot.Handlers
 
             FileStream stream = File.Open(_path, FileMode.Open);
 
-            XmlSerializer xmlSerializer = new XmlSerializer(typeof(Config));
+            XmlSerializer xmlSerializer = new(typeof(Config));
             Config = (Config)xmlSerializer.Deserialize(stream);
         }
 
@@ -37,7 +37,7 @@ namespace Discord_Bot.Handlers
         {
             FileStream stream = File.Open(_path, FileMode.Create);
 
-            XmlSerializer xmlSerializer = new XmlSerializer(typeof(Config));
+            XmlSerializer xmlSerializer = new(typeof(Config));
             xmlSerializer.Serialize(stream, Config);
         }
     }

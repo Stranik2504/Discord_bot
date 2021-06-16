@@ -17,24 +17,26 @@ namespace Discord_Bot.Handlers
                 .WithCurrentTimestamp().Build());
 
         public static async Task<Embed> CreateMusicEmbed(string title, string url, string length, string position, int count, Color color) =>
-            await Task.Run(() => new EmbedBuilder()
-                .WithTitle($"{(count == 1 ? "Song" : "Playlist")} added to queue")
-                .AddField(title, url)
-                .AddField("Length: ", null, true)
-                .AddField(length, null)
-                .AddField("Position: ", null, true)
-                .AddField(position, null)
-                .AddField("Enqueued: ", null, true)
-                .AddField(count.ToString(), null)
+            await Task.Run(() => {
+                var embed = new EmbedBuilder()
+                .WithTitle($"{(count == 1 ? "Song" : "Playlist")} added to queue");
+                if (url != "" && url != default) embed.WithDescription(title);
+                else embed.WithDescription($"[{title}]({url})");
+                if (length != "" && length != default) embed.AddField("Length", length, true);
+                embed.AddField("Position", position, true)
+                .AddField("Enqueued", count.ToString(), true)
                 .WithColor(color)
-                .WithCurrentTimestamp().Build());
+                .WithCurrentTimestamp();
+
+                return embed.Build();
+            });
 
         public static async Task<Embed> CreatePlayingEmbed(string title, string url, string length, string author, Color color) =>
             await Task.Run(() => new EmbedBuilder()
                 .WithTitle("Now Playing :musical_note:")
-                .AddField(title, url)
-                .AddField($"Length: {length}", null)
-                .AddField($"Author: {author}", null)
+                .WithDescription($"[{title}]({url})")
+                .AddField($"Length", length, true)
+                .AddField($"Author", author, true)
                 .WithColor(color)
                 .WithCurrentTimestamp().Build());
 

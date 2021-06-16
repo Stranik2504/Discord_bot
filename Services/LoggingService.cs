@@ -34,39 +34,24 @@ namespace Discord_Bot.Services
             });
         }
 
-        private static string SourceToString(string src)
+        private static string SourceToString(string src) => src.ToLower() switch
         {
-            switch (src.ToLower())
-            {
-                case "lavanode_0_socket":
-                    return "lavanode_socket";
-                case "lavanode_0":
-                    return "lavenode";
-                default:
-                    return src;
-            }
-        }
+            "lavanode_0_socket" => "lavanode_socket",
+            "lavanode_0" => "lavenode",
+            _ => src,
+        };
 
         private static string GetSeverityString(LogSeverity severity) => severity.ToString();
 
-        private static ConsoleColor GetConsoleColor(LogSeverity severity)
+        private static ConsoleColor GetConsoleColor(LogSeverity severity) => severity switch
         {
-            switch (severity)
-            {
-                case LogSeverity.Critical:
-                    return ConsoleColor.Red;
-                case LogSeverity.Debug:
-                    return ConsoleColor.Magenta;
-                case LogSeverity.Error:
-                    return ConsoleColor.DarkRed;
-                case LogSeverity.Info:
-                    return ConsoleColor.Green;
-                case LogSeverity.Verbose:
-                    return ConsoleColor.DarkCyan;
-                case LogSeverity.Warning:
-                    return ConsoleColor.Yellow;
-                default: return ConsoleColor.White;
-            }
-        }
+            LogSeverity.Critical => ConsoleColor.Red,
+            LogSeverity.Debug => ConsoleColor.Magenta,
+            LogSeverity.Error => ConsoleColor.DarkRed,
+            LogSeverity.Info => ConsoleColor.Green,
+            LogSeverity.Verbose => ConsoleColor.DarkCyan,
+            LogSeverity.Warning => ConsoleColor.Yellow,
+            _ => ConsoleColor.White,
+        };
     }
 }

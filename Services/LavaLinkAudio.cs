@@ -19,20 +19,20 @@ namespace Discord_Bot.Services
 
         public LavaLinkAudio(LavaNode lavaNode) => _lavaNode = lavaNode;
 
-        public async Task<object> JoinAsync(IGuild guild, IVoiceChannel voiceChannel)
+        public async Task<object> JoinAsync(IGuild guild, IVoiceChannel voiceChannel, ITextChannel textChannel)
         {
             var nameCommand = "join command";
 
             if (voiceChannel is null)
                 return (await EmbedHandler.CreateErrorEmbed(nameCommand, "You must be connected to a voice channel!"));
 
-            var player = _lavaNode.GetPlayer(guild);
-            if (player != null && voiceChannel.Id == player.VoiceChannel.Id)
+            if (_lavaNode.HasPlayer(guild) && voiceChannel.Id == _lavaNode.GetPlayer(guild).VoiceChannel.Id)
                 return await EmbedHandler.CreateErrorEmbed(nameCommand, "I'm already connected to a voice channel!");
 
             try
             {
-                await _lavaNode.JoinAsync(voiceChannel);
+                await _lavaNode.JoinAsync(voiceChannel, textChannel);
+                await _lavaNode.GetPlayer(guild).UpdateVolumeAsync(GetVolume(guild));
                 return $"Join in {voiceChannel.Name}.";
             }
             catch (Exception ex) { return await EmbedHandler.CreateErrorEmbed(nameCommand, ex.Message); }
@@ -45,8 +45,7 @@ namespace Discord_Bot.Services
             if (voiceChannel == null)
                 return await EmbedHandler.CreateErrorEmbed(nameCommand, "You must first join a voice channel.");
 
-            var player = _lavaNode.GetPlayer(guild);
-            if (player != null)
+            if (!_lavaNode.HasPlayer(guild))
                 if (voiceChannel != null)
                     await _lavaNode.JoinAsync(voiceChannel);
                 else
@@ -54,21 +53,39 @@ namespace Discord_Bot.Services
 
             try
             {
-                LavaTrack track;
+                IReadOnlyList<LavaTrack> tracks;
+                var player = _lavaNode.GetPlayer(guild);
 
-                var search = await _lavaNode.SearchAsync(query);
+                await player.UpdateVolumeAsync(GetVolume(guild));
+
+                var search = Uri.IsWellFormedUriString(query, UriKind.Absolute) ? await _lavaNode.SearchAsync(query) : await _lavaNode.SearchYouTubeAsync(query);
 
                 if (search.LoadStatus == LoadStatus.NoMatches)
                     return await EmbedHandler.CreateErrorEmbed(nameCommand, $"I wasn't able to find anything for {query}.");
 
-                track = search.Tracks?.FirstOrDefault();
+                tracks = search.Tracks;
+
+                if (tracks == null || tracks.Count == 0) 
+                    return await EmbedHandler.CreateErrorEmbed(nameCommand, $"I wasn't able to find anything for {query}.");
+
+                tracks.ToList().ForEach(x => player.Queue.Enqueue(x));
 
                 if (player.Track != null && player.PlayerState is PlayerState.Playing || player.PlayerState is PlayerState.Paused)
                 {
-                    player.Queue.Enqueue(track);
-                    await LoggingService.LogInformationAsync(nameCommand, $"{track.Title} has been added to the music queue.");
-                    return await EmbedHandler.CreateMusicEmbed(track.Title, track.Url, track.Duration.ToString(), player.Queue.Count.ToString(), 1, Color.Blue);
+                    if (search.Playlist.Name == null)
+                    {
+                        await LoggingService.LogInformationAsync(nameCommand, $"{tracks.FirstOrDefault().Title} has been added to the music queue.");
+                        return await EmbedHandler.CreateMusicEmbed(tracks.FirstOrDefault().Title, tracks.FirstOrDefault().Url, tracks.FirstOrDefault().Duration.ToString(), player.Queue.Count.ToString(), 1, Color.Green);
+                    }
+                    else
+                    {
+                        await LoggingService.LogInformationAsync(nameCommand, $"Playlist {search.Playlist.Name} has been added to the music queue.");
+                        return await EmbedHandler.CreateMusicEmbed(search.Playlist.Name, tracks.FirstOrDefault().Url, default, player.Queue.Count.ToString(), tracks.Count, Color.Green);
+                    }
                 }
+
+                player.Queue.TryDequeue(out LavaTrack track);
+                await player.PlayAsync(track);
 
                 await player.PlayAsync(track);
                 await LoggingService.LogInformationAsync(nameCommand, $"Bot Now Playing: {track.Title}\nUrl: {track.Url}");
@@ -83,9 +100,10 @@ namespace Discord_Bot.Services
 
             try
             {
-                var player = _lavaNode.GetPlayer(guild);
-                if (player != null)
+                if (!_lavaNode.HasPlayer(guild))
                     return await EmbedHandler.CreateErrorEmbed(nameCommand, "I'm not connected to a voice channel.");
+
+                var player = _lavaNode.GetPlayer(guild);
 
                 if (player.PlayerState is PlayerState.Playing) await player.StopAsync();
 
@@ -105,11 +123,11 @@ namespace Discord_Bot.Services
             {
                 var descriptionBuilder = new StringBuilder();
 
-                var player = _lavaNode.GetPlayer(guild);
-                if (player != null)
+                
+                if (!_lavaNode.HasPlayer(guild))
                     return await EmbedHandler.CreateErrorEmbed(nameCommand, "I'm not connected to a voice channel.");
 
-                if (player == null) return $"Could not acquire queue";
+                var player = _lavaNode.GetPlayer(guild);
 
                 if (player.PlayerState is PlayerState.Playing)
                 {
@@ -136,9 +154,10 @@ namespace Discord_Bot.Services
 
             try
             {
-                var player = _lavaNode.GetPlayer(guild);
-                if (player != null)
+                if (!_lavaNode.HasPlayer(guild))
                     return await EmbedHandler.CreateErrorEmbed(nameCommand, "I'm not connected to a voice channel.");
+
+                var player = _lavaNode.GetPlayer(guild);
 
                 if (player.Queue.Count < 1) return "Queue is clear";
 
@@ -161,9 +180,10 @@ namespace Discord_Bot.Services
 
             try
             {
-                var player = _lavaNode.GetPlayer(guild);
-                if (player != null)
+                if (!_lavaNode.HasPlayer(guild))
                     return await EmbedHandler.CreateErrorEmbed(nameCommand, "I'm not connected to a voice channel.");
+
+                var player = _lavaNode.GetPlayer(guild);
 
                 if (player.PlayerState is PlayerState.Playing) await player.StopAsync();
 
@@ -179,13 +199,17 @@ namespace Discord_Bot.Services
 
             if (volume > 150 || volume <= 0) return $"Volume must be between 1 and 150.";
 
+            GlobalData.Config.SetNewVoulme(guild.Id, (ushort)volume);
+            GlobalData.Save();
+
             try
             {
-                var player = _lavaNode.GetPlayer(guild);
-                if (player != null)
+                if (!_lavaNode.HasPlayer(guild))
                     return await EmbedHandler.CreateErrorEmbed(nameCommand, "I'm not connected to a voice channel.");
 
-                await player.UpdateVolumeAsync((ushort)volume);
+                var player = _lavaNode.GetPlayer(guild);
+
+                await player.UpdateVolumeAsync(GetVolume(guild));
 
                 await LoggingService.LogInformationAsync(nameCommand, $"Bot Volume set to: {volume}");
                 return $"Volume has been set to {volume}";
@@ -199,9 +223,10 @@ namespace Discord_Bot.Services
 
             try
             {
-                var player = _lavaNode.GetPlayer(guild);
-                if (player != null)
+                if (!_lavaNode.HasPlayer(guild))
                     return await EmbedHandler.CreateErrorEmbed(nameCommand, "I'm not connected to a voice channel.");
+
+                var player = _lavaNode.GetPlayer(guild);
 
                 if (!(player.PlayerState is PlayerState.Playing))
                 {
@@ -221,9 +246,10 @@ namespace Discord_Bot.Services
 
             try
             {
-                var player = _lavaNode.GetPlayer(guild);
-                if (player != null)
+                if (!_lavaNode.HasPlayer(guild))
                     return await EmbedHandler.CreateErrorEmbed(nameCommand, "I'm not connected to a voice channel.");
+
+                var player = _lavaNode.GetPlayer(guild);
 
                 if (player.PlayerState is PlayerState.Paused) await player.ResumeAsync();
 
@@ -242,7 +268,7 @@ namespace Discord_Bot.Services
                 return;
             }
 
-            if (!(queueable is LavaTrack track))
+            if (queueable is not LavaTrack track)
             {
                 await args.Player.TextChannel.SendMessageAsync("Next item in queue is not a track");
                 return;
@@ -251,5 +277,7 @@ namespace Discord_Bot.Services
             await args.Player.PlayAsync(track); 
             await args.Player.TextChannel.SendMessageAsync(embed: await EmbedHandler.CreatePlayingEmbed(track.Title, track.Url, track.Duration.ToString(), track.Author, Color.Blue));
         }
+
+        private ushort GetVolume(IGuild guild) => GlobalData.Config.GetVoulme(guild.Id);
     }
 }

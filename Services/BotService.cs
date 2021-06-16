@@ -3,7 +3,6 @@ using Discord.Commands;
 using Discord.WebSocket;
 using Discord_Bot.Handlers;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Logging;
 using System;
 using System.Threading.Tasks;
 using Victoria;
@@ -17,20 +16,18 @@ namespace Discord_Bot.Services
         private readonly ServiceProvider _services;
         private readonly LavaNode _lavaNode;
         private readonly LavaLinkAudio _audioService;
-        private readonly GlobalData _globalData;
 
         public BotService()
         {
             _services = ConfigureServices();
 
-            _client = new DiscordSocketClient();
+            _client = _services.GetRequiredService<DiscordSocketClient>();
             _commandHandler = _services.GetRequiredService<CommandHandler>();
             _lavaNode = _services.GetRequiredService<LavaNode>();
-            _globalData = _services.GetRequiredService<GlobalData>();
             _audioService = _services.GetRequiredService<LavaLinkAudio>();
 
-            //_lavaNode.OnLog += LogAsync;
-            //_lavaNode.OnTrackEnded += _audioService.TrackEnded;
+            _lavaNode.OnLog += LogAsync;
+            _lavaNode.OnTrackEnded += _audioService.TrackEnded;
 
             _client.Log += LogAsync;
             _client.Ready += async () => {
@@ -58,27 +55,29 @@ namespace Discord_Bot.Services
         {
             try
             {
-                //await _lavaNode.ConnectAsync();
+                await _lavaNode.ConnectAsync();
                 if (GlobalData.Config.GameStatus != default) await _client.SetGameAsync(GlobalData.Config.GameStatus);
             }
             catch (Exception ex) { await LoggingService.LogInformationAsync(ex.Source, ex.Message); }
         }
 
-        private ServiceProvider ConfigureServices() => new ServiceCollection()
+        private ServiceProvider ConfigureServices()
+        {
+            return new ServiceCollection()
                 .AddSingleton<DiscordSocketClient>()
                 .AddSingleton<CommandService>()
                 .AddSingleton<CommandHandler>()
                 .AddSingleton<LavaNode>()
-                .AddSingleton(new LavaConfig())
+                .AddSingleton(new LavaConfig() { LogSeverity = LogSeverity.Info })
                 .AddSingleton<LavaLinkAudio>()
                 .AddSingleton<BotService>()
                 .AddSingleton<GlobalData>()
                 .BuildServiceProvider();
+        }
 
         private async Task LogAsync(LogMessage logMessage)
         {
             await LoggingService.LogAsync(logMessage.Source, logMessage.Severity, logMessage.Message, logMessage.Exception);
         }
     }
-
 }

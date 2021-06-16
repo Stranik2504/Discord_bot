@@ -48,8 +48,7 @@ namespace Discord_Bot.Handlers
 
             var context = new SocketCommandContext(_client, socketMessage as SocketUserMessage);
 
-            //GlobalData.Config.GetPrefix(context.Guild.Id)
-            if (!message.HasStringPrefix("!", ref argPos)) return Task.CompletedTask;
+            if (!message.HasStringPrefix(GlobalData.Config.GetPrefix(context.Guild.Id), ref argPos)) return Task.CompletedTask;
 
             var result = _commands.ExecuteAsync(context, argPos, _services, MultiMatchHandling.Best);
 
