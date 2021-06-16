@@ -44,11 +44,12 @@ namespace Discord_Bot.Handlers
         private Task HandleCommandAsync(SocketMessage socketMessage)
         {
             var argPos = 0;
-            if (!(socketMessage is SocketUserMessage message) || message.Author.IsBot || message.Author.IsWebhook) return Task.CompletedTask;
+            if (socketMessage is not SocketUserMessage message || message.Author.IsBot || message.Author.IsWebhook) return Task.CompletedTask;
 
             var context = new SocketCommandContext(_client, socketMessage as SocketUserMessage);
 
-            if (!message.HasStringPrefix(GlobalData.Config.GetPrefix(context.Guild.Id), ref argPos)) return Task.CompletedTask;
+            //GlobalData.Config.GetPrefix(context.Guild.Id)
+            if (!message.HasStringPrefix("!", ref argPos)) return Task.CompletedTask;
 
             var result = _commands.ExecuteAsync(context, argPos, _services, MultiMatchHandling.Best);
 

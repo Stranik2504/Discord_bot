@@ -15,13 +15,13 @@ namespace Discord_Bot.Modules
         public LavaLinkAudio AudioService { get; set; }
 
         [Command("Join")]
-        public async Task JoinAndPlay() => await Output(await AudioService.JoinAsync(Context.Guild, Context.User as IVoiceState, Context.Channel as ITextChannel));
+        public async Task JoinAndPlay() => await Output(await AudioService.JoinAsync(Context.Guild, (Context.User as IVoiceState).VoiceChannel));
 
         [Command("Leave")]
         public async Task Leave() => await Output(await AudioService.LeaveAsync(Context.Guild));
 
         [Command("Play")]
-        public async Task Play([Remainder] string search) => await Output(await AudioService.PlayAsync(Context.User as SocketGuildUser, Context.Guild, search));
+        public async Task Play([Remainder] string search) => await Output(await AudioService.PlayAsync(Context.Guild, (Context.User as SocketGuildUser).VoiceChannel, search));
 
         [Command("Stop")]
         public async Task Stop() => await Output(await AudioService.StopAsync(Context.Guild));

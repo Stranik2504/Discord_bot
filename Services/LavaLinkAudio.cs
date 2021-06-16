@@ -10,7 +10,6 @@ using System.Threading.Tasks;
 using Victoria;
 using Victoria.Enums;
 using Victoria.EventArgs;
-using Victoria.Responses.Rest;
 
 namespace Discord_Bot.Services
 {
@@ -20,40 +19,41 @@ namespace Discord_Bot.Services
 
         public LavaLinkAudio(LavaNode lavaNode) => _lavaNode = lavaNode;
 
-        public async Task<object> JoinAsync(IGuild guild, IVoiceState voiceState, ITextChannel textChannel)
+        public async Task<object> JoinAsync(IGuild guild, IVoiceChannel voiceChannel)
         {
             var nameCommand = "join command";
 
-            if (voiceState.VoiceChannel is null)
+            if (voiceChannel is null)
                 return (await EmbedHandler.CreateErrorEmbed(nameCommand, "You must be connected to a voice channel!"));
 
-            if (_lavaNode.HasPlayer(guild) && voiceState.VoiceChannel.Id == _lavaNode.GetPlayer(guild).VoiceChannel.Id)
+            var player = _lavaNode.GetPlayer(guild);
+            if (player != null && voiceChannel.Id == player.VoiceChannel.Id)
                 return await EmbedHandler.CreateErrorEmbed(nameCommand, "I'm already connected to a voice channel!");
 
             try
             {
-                await _lavaNode.JoinAsync(voiceState.VoiceChannel, textChannel);
-                return $"Join in {voiceState.VoiceChannel.Name}.";
+                await _lavaNode.JoinAsync(voiceChannel);
+                return $"Join in {voiceChannel.Name}.";
             }
             catch (Exception ex) { return await EmbedHandler.CreateErrorEmbed(nameCommand, ex.Message); }
         }
 
-        public async Task<object> PlayAsync(SocketGuildUser user, IGuild guild, string query)
+        public async Task<object> PlayAsync(IGuild guild, IVoiceChannel voiceChannel, string query)
         {
             var nameCommand = "play command";
 
-            if (user.VoiceChannel == null)
+            if (voiceChannel == null)
                 return await EmbedHandler.CreateErrorEmbed(nameCommand, "You must first join a voice channel.");
 
-            if (!_lavaNode.HasPlayer(guild))
-                if (user.VoiceChannel != null)
-                    await _lavaNode.JoinAsync(user.VoiceChannel);
+            var player = _lavaNode.GetPlayer(guild);
+            if (player != null)
+                if (voiceChannel != null)
+                    await _lavaNode.JoinAsync(voiceChannel);
                 else
                     return await EmbedHandler.CreateErrorEmbed(nameCommand, "I'm not connected to a voice channel.");
 
             try
             {
-                var player = _lavaNode.GetPlayer(guild);
                 LavaTrack track;
 
                 var search = await _lavaNode.SearchAsync(query);
@@ -61,7 +61,7 @@ namespace Discord_Bot.Services
                 if (search.LoadStatus == LoadStatus.NoMatches)
                     return await EmbedHandler.CreateErrorEmbed(nameCommand, $"I wasn't able to find anything for {query}.");
 
-                track = search.Tracks.FirstOrDefault();
+                track = search.Tracks?.FirstOrDefault();
 
                 if (player.Track != null && player.PlayerState is PlayerState.Playing || player.PlayerState is PlayerState.Paused)
                 {
@@ -84,6 +84,8 @@ namespace Discord_Bot.Services
             try
             {
                 var player = _lavaNode.GetPlayer(guild);
+                if (player != null)
+                    return await EmbedHandler.CreateErrorEmbed(nameCommand, "I'm not connected to a voice channel.");
 
                 if (player.PlayerState is PlayerState.Playing) await player.StopAsync();
 
@@ -102,7 +104,10 @@ namespace Discord_Bot.Services
             try
             {
                 var descriptionBuilder = new StringBuilder();
+
                 var player = _lavaNode.GetPlayer(guild);
+                if (player != null)
+                    return await EmbedHandler.CreateErrorEmbed(nameCommand, "I'm not connected to a voice channel.");
 
                 if (player == null) return $"Could not acquire queue";
 
@@ -132,7 +137,8 @@ namespace Discord_Bot.Services
             try
             {
                 var player = _lavaNode.GetPlayer(guild);
-                if (player == null) return "Could not aquire queue";
+                if (player != null)
+                    return await EmbedHandler.CreateErrorEmbed(nameCommand, "I'm not connected to a voice channel.");
 
                 if (player.Queue.Count < 1) return "Queue is clear";
 
@@ -156,7 +162,8 @@ namespace Discord_Bot.Services
             try
             {
                 var player = _lavaNode.GetPlayer(guild);
-                if (player == null) return "Could not aquire queue";
+                if (player != null)
+                    return await EmbedHandler.CreateErrorEmbed(nameCommand, "I'm not connected to a voice channel.");
 
                 if (player.PlayerState is PlayerState.Playing) await player.StopAsync();
 
@@ -175,6 +182,9 @@ namespace Discord_Bot.Services
             try
             {
                 var player = _lavaNode.GetPlayer(guild);
+                if (player != null)
+                    return await EmbedHandler.CreateErrorEmbed(nameCommand, "I'm not connected to a voice channel.");
+
                 await player.UpdateVolumeAsync((ushort)volume);
 
                 await LoggingService.LogInformationAsync(nameCommand, $"Bot Volume set to: {volume}");
@@ -190,6 +200,8 @@ namespace Discord_Bot.Services
             try
             {
                 var player = _lavaNode.GetPlayer(guild);
+                if (player != null)
+                    return await EmbedHandler.CreateErrorEmbed(nameCommand, "I'm not connected to a voice channel.");
 
                 if (!(player.PlayerState is PlayerState.Playing))
                 {
@@ -210,6 +222,8 @@ namespace Discord_Bot.Services
             try
             {
                 var player = _lavaNode.GetPlayer(guild);
+                if (player != null)
+                    return await EmbedHandler.CreateErrorEmbed(nameCommand, "I'm not connected to a voice channel.");
 
                 if (player.PlayerState is PlayerState.Paused) await player.ResumeAsync();
 
