@@ -14,7 +14,8 @@ namespace Discord_Bot.Modules
     {
         public LavaLinkAudio AudioService { get; set; }
 
-        [Command("Join")]
+        [Command("Command to join")]
+        [Alias("join")]
         public async Task JoinAndPlay() => await Output(await AudioService.JoinAsync(Context.Guild, (Context.User as IVoiceState).VoiceChannel, Context.Channel as ITextChannel));
 
         [Command("Leave")]

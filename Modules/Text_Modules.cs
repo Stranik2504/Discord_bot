@@ -11,6 +11,8 @@ namespace Discord_Bot.Modules
 {
     public class Text_Modules : ModuleBase<SocketCommandContext>
     {
+        public CommandService Commands { get; set; }
+
         [Command("ping")]
         //[Alias("pong")]
         //[Summary("ghj")]
@@ -38,9 +40,36 @@ namespace Discord_Bot.Modules
         }
 
         [Command("commands")]
-        public async Task Commands()
+        [Alias("help", "command", "commands")]
+        [Summary("Команда для получения информации о командах")]
+        public async Task HelpCommand()
         {
-            await ReplyAsync("LOL");
+            string output = "```";
+            //CommandService Commands = default;
+
+            for (int i = 0; i < Commands.Commands.Count(); i++)
+            {
+                var item = Commands.Commands.ToList()[i];
+
+                output += $"{i + 1}) {item.Name}";
+
+                if (item.Aliases.Count > 0)
+                {
+                    output += "(";
+                    for (int j = 1; j < item.Aliases.Count; j++) { output += item.Aliases[j]; if (j + 1 < item.Aliases.Count) output += ", "; }
+                    output += ")";
+                }
+
+                if (item.Summary != null)
+                {
+                    output += $":\n{item.Summary}";
+                }
+                else output += "\n";
+            }
+
+            output += "```";
+
+            await ReplyAsync(output);
         }
     }
 }

@@ -72,7 +72,7 @@ namespace Discord_Bot.Services
 
                 if (search.Playlist.Name != null)
                     tracks.ToList().ForEach(x => player.Queue.Enqueue(x));
-                else if (tracks.Count > 1)
+                else
                 {
                     player.Queue.Enqueue(tracks.First());
                     //TODO: добавить выбор песен
@@ -291,13 +291,15 @@ namespace Discord_Bot.Services
 
             if (!args.Player.Queue.TryDequeue(out var queueable))
             {
-                await args.Player.TextChannel.SendMessageAsync("Playing finished");
+                if (GlobalData.Config.GetNeedOutput(args.Player.VoiceChannel.GuildId))
+                    await args.Player.TextChannel.SendMessageAsync("Playing finished");
                 return;
             }
 
             if (queueable is not LavaTrack track)
             {
-                await args.Player.TextChannel.SendMessageAsync("Next item in queue is not a track");
+                if (GlobalData.Config.GetNeedOutput(args.Player.VoiceChannel.GuildId))
+                    await args.Player.TextChannel.SendMessageAsync("Next item in queue is not a track");
                 return;
             }
 

@@ -32,7 +32,7 @@ namespace Discord_Bot.Handlers
                 assembly: Assembly.GetEntryAssembly(),
                 services: _services);
 
-            _commands.Commands.ToList().ForEach(x => System.Diagnostics.Debug.WriteLine(x.Module.Name));
+            //_commands.Commands.ToList().ForEach(x => System.Diagnostics.Debug.WriteLine(x.Module.Name));
         }
 
         public void HookEvents()
