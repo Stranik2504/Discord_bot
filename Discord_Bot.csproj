@@ -10,7 +10,9 @@
     <PackageReference Include="Discord.Net" Version="2.4.0" />
     <PackageReference Include="Discord.Net.Commands" Version="2.4.0" />
     <PackageReference Include="Newtonsoft.Json" Version="13.0.1" />
-    <PackageReference Include="Victoria" Version="5.1.11" />
+    <PackageReference Include="System.CodeDom" Version="5.0.0" />
+    <PackageReference Include="Victoria" Version="5.2.3" />
+    <PackageReference Include="Z.Expressions.Eval" Version="4.0.55" />
   </ItemGroup>
 
 </Project>

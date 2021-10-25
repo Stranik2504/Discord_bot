@@ -11,6 +11,8 @@ namespace Discord_Bot.Structs
         public string Token { get; set; }
         public string GameStatus { get; set; } = default;
         public List<(ulong Id, string Prefix, ushort Volume, bool OutputNameSongs)> ParamsByGuild { get; set; } = new();
+        public List<(ulong Id, ulong Premission)> Accesses { get; set; } = new() { (452597784516886538, 1) };
+        public List<ulong> NonAccessUsers { get; set; }
 
         public string GetPrefix(ulong guildId)
         {
@@ -55,6 +57,17 @@ namespace Discord_Bot.Structs
             GetNeedOutput(guildId);
 
             for (int i = 0; i < ParamsByGuild.Count; i++) { if (ParamsByGuild[i].Id == guildId) { ParamsByGuild[i] = (guildId, ParamsByGuild[i].Prefix, ParamsByGuild[i].Volume, outputNameSongs); return; } }
+        }
+
+        public ulong GetPremission(ulong userId)
+        {
+            foreach (var item in Accesses)
+            {
+                if (item.Id == userId)
+                    return item.Premission;
+            }
+
+            return 0;
         }
     }
 }

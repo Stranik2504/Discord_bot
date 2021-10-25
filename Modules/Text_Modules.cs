@@ -6,6 +6,14 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using System.Diagnostics;
+using Z.Expressions;
+using Microsoft.CSharp;
+using System.CodeDom.Compiler;
+using System.Reflection;
+using Discord_Bot.Attributes;
+
+using static System.Diagnostics.Debug;
 
 namespace Discord_Bot.Modules
 {
@@ -14,14 +22,13 @@ namespace Discord_Bot.Modules
         public CommandService Commands { get; set; }
 
         [Command("ping")]
-        //[Alias("pong")]
-        //[Summary("ghj")]
         public async Task Pong()
         {
             await ReplyAsync("PONG!");
         }
 
         [Command("prefix")]
+        [Accesses(452597784516886538, Access.Admin)]
         public async Task ChangePrefix(string prefix)
         {
             GlobalData.Config.SetNewPrefix(Context.Guild.Id, prefix);
@@ -39,17 +46,63 @@ namespace Discord_Bot.Modules
             await ReplyAsync("Output name next song to " + output);
         }
 
-        [Command("commands")]
-        [Alias("help", "command", "commands")]
+        [Command("eval")]
+        [Accesses(Access.Admin)]
+        public async Task Evals([Remainder] string text)
+        {
+            await ReplyAsync(ExpressionEvaluator.Eval(text));
+        }
+
+        [Command("send")]
+        [Accesses(Access.Admin)]
+        public async Task Send([Remainder] string text)
+        {
+            await Context.Message.DeleteAsync();
+            Console.WriteLine(text);
+            await ReplyAsync(text);
+        }
+
+        [Accesses(452597784516886538)]
+        public async Task AddAccess([Remainder] ulong userId)
+        {
+            await ReplyAsync("you do it");
+        }
+
+
+        [Command("relaod")]
+        [Accesses(452597784516886538)]
+        public async Task ReloadConf()
+        {
+            await GlobalData.LoadAsync();
+        }
+
+        [Command("help")]
+        [Alias("command", "commands", "commands")]
         [Summary("Команда для получения информации о командах")]
         public async Task HelpCommand()
         {
             string output = "```";
             //CommandService Commands = default;
+            List<CommandInfo> commands = new();
+            Commands.Commands.ToList().ForEach(x => {
+                var isAdd = true;
 
-            for (int i = 0; i < Commands.Commands.Count(); i++)
+                x.Preconditions.ToList().ForEach(y =>
+                {
+                    var res = y.CheckPermissionsAsync(Context, x, null).Result;
+
+                    if (!res.IsSuccess)
+                        isAdd = false;
+                });
+
+                if (isAdd)
+                    commands.Add(x);
+            });
+
+
+            for (int i = 0; i < commands.Count(); i++)
             {
-                var item = Commands.Commands.ToList()[i];
+                var item = commands.ToList()[i];
 
                 output += $"{i + 1}) {item.Name}";
 
@@ -62,7 +115,7 @@ namespace Discord_Bot.Modules
 
                 if (item.Summary != null)
                 {
-                    output += $":\n{item.Summary}";
+                    output += $":\n\t{item.Summary}";
                 }
                 else output += "\n";
             }
@@ -70,6 +123,22 @@ namespace Discord_Bot.Modules
             output += "```";
 
             await ReplyAsync(output);
+        }
+    }
+
+    public class ExpressionEvaluator
+    {
+        public static string Eval(string code)
+        {
+            CSharpCodeProvider codeProvider = new CSharpCodeProvider();
+            CompilerResults results =
+                codeProvider
+                .CompileAssemblyFromSource(new CompilerParameters(), new string[] { code });
+
+            Assembly assembly = results.CompiledAssembly;
+            dynamic evaluator =
+                Activator.CreateInstance(assembly.GetType("MyAssembly.Evaluator"));
+            return evaluator.Eval();
         }
     }
 }

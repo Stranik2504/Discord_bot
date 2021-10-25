@@ -31,8 +31,6 @@ namespace Discord_Bot.Handlers
             await _commands.AddModulesAsync(
                 assembly: Assembly.GetEntryAssembly(),
                 services: _services);
-
-            //_commands.Commands.ToList().ForEach(x => System.Diagnostics.Debug.WriteLine(x.Module.Name));
         }
 
         public void HookEvents()
@@ -54,10 +52,10 @@ namespace Discord_Bot.Handlers
 
             var result = _commands.ExecuteAsync(context, argPos, _services, MultiMatchHandling.Best);
 
-            if (!result.Result.IsSuccess)
+            /*if (!result.Result.IsSuccess)
             {
                 context.Channel.SendMessageAsync(result.Result.ErrorReason);
-            }
+            }*/
 
             return result;
         }

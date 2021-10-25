@@ -11,6 +11,7 @@ using System.Threading.Tasks;
 using Victoria;
 using Victoria.Enums;
 using Victoria.EventArgs;
+using Victoria.Responses.Search;
 
 namespace Discord_Bot.Services
 {
@@ -55,14 +56,14 @@ namespace Discord_Bot.Services
 
             try
             {
-                IReadOnlyList<LavaTrack> tracks;
+                IReadOnlyCollection<LavaTrack> tracks;
                 var player = _lavaNode.GetPlayer(guild);
 
                 await player.UpdateVolumeAsync(GetVolume(guild));
 
-                var search = Uri.IsWellFormedUriString(query, UriKind.Absolute) ? await _lavaNode.SearchAsync(query) : await _lavaNode.SearchYouTubeAsync(query);
+                var search = Uri.IsWellFormedUriString(query, UriKind.Absolute) ? await _lavaNode.SearchAsync(SearchType.Direct, query) : await _lavaNode.SearchYouTubeAsync(query);
 
-                if (search.LoadStatus == LoadStatus.NoMatches)
+                if (search.Status == SearchStatus.NoMatches)
                     return await EmbedHandler.CreateErrorEmbed(nameCommand, $"I wasn't able to find anything for {query}.");
 
                 tracks = search.Tracks;
@@ -176,7 +177,7 @@ namespace Discord_Bot.Services
 
                 var player = _lavaNode.GetPlayer(guild);
 
-                if (player.Queue.Count < 1) return "Queue is clear";
+                if (player.Queue.Count == 0 && player.PlayerState != PlayerState.Playing) return "Queue is clear";
 
                 try
                 {
@@ -287,7 +288,7 @@ namespace Discord_Bot.Services
 
         public async Task TrackEnded(TrackEndedEventArgs args)
         {
-            if (!args.Reason.ShouldPlayNext()) return;
+            if (args.Reason != TrackEndReason.Finished) return;
 
             if (!args.Player.Queue.TryDequeue(out var queueable))
             {

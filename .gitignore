@@ -16,6 +16,9 @@
 *.conf
 Config.conf
 
+*.bat
+start.bat
+
 # Mono auto generated files
 mono_crash.*
 *.sln
@@ -25,6 +28,7 @@ mono_crash.*
 [Dd]ebugPublic/
 [Rr]elease/
 [Rr]eleases/
+[Ll]avalink/
 x64/
 x86/
 [Aa][Rr][Mm]/
