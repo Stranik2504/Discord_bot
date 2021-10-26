@@ -16,6 +16,12 @@ namespace Discord_Bot.Handlers
                 .WithColor(color)
                 .WithCurrentTimestamp().Build());
 
+        public static async Task<Embed> CreateInfo(string title, Color color) =>
+            await Task.Run(() => new EmbedBuilder()
+                .WithTitle(title)
+                .WithColor(color)
+                .WithCurrentTimestamp().Build());
+
         public static async Task<Embed> CreateMusicEmbed(string title, string url, string length, string position, int count, Color color) =>
             await Task.Run(() => {
                 var embed = new EmbedBuilder()

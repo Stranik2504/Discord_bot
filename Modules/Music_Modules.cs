@@ -14,20 +14,28 @@ namespace Discord_Bot.Modules
     {
         public LavaLinkAudio AudioService { get; set; }
 
-        [Command("Command to join")]
-        [Alias("join")]
+        [Command("join")]
+        [Alias("j")]
+        [Summary("Команда для присоединения бота в голосовой канал")]
         public async Task JoinAndPlay() => await Output(await AudioService.JoinAsync(Context.Guild, (Context.User as IVoiceState).VoiceChannel, Context.Channel as ITextChannel));
 
         [Command("leave")]
+        [Alias("l")]
+        [Summary("Команда для отключения бота от голосового канала")]
         public async Task Leave() => await Output(await AudioService.LeaveAsync(Context.Guild));
 
         [Command("play")]
+        [Alias("p")]
+        [Summary("Команда для воспроизведения песни")]
         public async Task Play([Remainder] string search) => await Output(await AudioService.PlayAsync(Context, (Context.User as SocketGuildUser).VoiceChannel, search));
 
         [Command("stop")]
+        [Summary("Команда для полной остановки воспроизведения(с отчищением очереди)")]
         public async Task Stop() => await Output(await AudioService.StopAsync(Context.Guild));
 
         [Command("list")]
+        [Alias("l")]
+        [Summary("Команда для отображении очереди песен")]
         public async Task List() => await Output(await AudioService.ListAsync(Context.Guild));
 
         [Command("skip")]

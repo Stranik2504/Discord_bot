@@ -33,9 +33,11 @@ namespace Discord_Bot.Services
             _client.Ready += async () => {
                 //await ReadyAsync();
 
-                Console.ForegroundColor = ConsoleColor.Green;
-                Console.WriteLine("[Bot started]");
-                Console.ResetColor();
+                await Task.Run(() => {
+                    Console.ForegroundColor = ConsoleColor.Green;
+                    Console.WriteLine("[Bot started]");
+                    Console.ResetColor();
+                });
             };
         }
 

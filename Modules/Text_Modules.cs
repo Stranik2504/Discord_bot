@@ -22,15 +22,21 @@ namespace Discord_Bot.Modules
         public CommandService Commands { get; set; }
 
         [Command("ping")]
+        [AccessesUser(452597784516886538)]
+        [Summary("Тестовая команда")]
         public async Task Pong()
         {
             await ReplyAsync("PONG!");
         }
 
         [Command("prefix")]
-        [Accesses(452597784516886538, Access.Admin)]
-        public async Task ChangePrefix(string prefix)
+        [Accesses(Access.Admin)]
+        [AccessesUser(452597784516886538)]
+        [Summary("Команда для смены префикса")]
+        public async Task ChangePrefix([Remainder] string prefix)
         {
+            Console.WriteLine(prefix);
+
             GlobalData.Config.SetNewPrefix(Context.Guild.Id, prefix);
             GlobalData.Save();
 
@@ -38,6 +44,8 @@ namespace Discord_Bot.Modules
         }
 
         [Command("outputs")]
+        [Alias("print_next", "printNext")]
+        [Summary("Командля для изменения параметра вывода следующей песни")]
         public async Task ChangeOutputNameSong(bool output)
         {
             GlobalData.Config.SetNewNeedOutput(Context.Guild.Id, output);
@@ -48,6 +56,7 @@ namespace Discord_Bot.Modules
 
         [Command("eval")]
         [Accesses(Access.Admin)]
+        [Summary("Команда для выполнения кода во входной строке")]
         public async Task Evals([Remainder] string text)
         {
             await ReplyAsync(ExpressionEvaluator.Eval(text));
@@ -55,6 +64,7 @@ namespace Discord_Bot.Modules
 
         [Command("send")]
         [Accesses(Access.Admin)]
+        [Summary("Команда для отправки сообщения от имени бота")]
         public async Task Send([Remainder] string text)
         {
             await Context.Message.DeleteAsync();
@@ -62,15 +72,17 @@ namespace Discord_Bot.Modules
             await ReplyAsync(text);
         }
 
-        [Accesses(452597784516886538)]
+        [AccessesUser(452597784516886538)]
         public async Task AddAccess([Remainder] ulong userId)
         {
             await ReplyAsync("you do it");
         }
 
 
-        [Command("relaod")]
-        [Accesses(452597784516886538)]
+        [Command("relaod_conf")]
+        [Alias("rc")]
+        [Summary("Команда для перезагрузки файла с конфигами")]
+        [AccessesUser(452597784516886538)]
         public async Task ReloadConf()
         {
             await GlobalData.LoadAsync();
@@ -82,8 +94,8 @@ namespace Discord_Bot.Modules
         public async Task HelpCommand()
         {
             string output = "```";
-            //CommandService Commands = default;
             List<CommandInfo> commands = new();
+
             Commands.Commands.ToList().ForEach(x => {
                 var isAdd = true;
 
@@ -99,8 +111,7 @@ namespace Discord_Bot.Modules
                     commands.Add(x);
             });
 
-
-            for (int i = 0; i < commands.Count(); i++)
+            for (int i = 0; i < commands.Count; i++)
             {
                 var item = commands.ToList()[i];
 
@@ -124,13 +135,37 @@ namespace Discord_Bot.Modules
 
             await ReplyAsync(output);
         }
+
+        [Command("dm")]
+        [Accesses(Access.Admin)]
+        [NonAccessesUsers(307764896219791360)]
+        [Summary("Команда для удаление последних n сообщений")]
+        public async Task DeleteLastMessages([Remainder] int count = 1)
+        {
+            await Context.Message.DeleteAsync();
+
+            while (count > 0)
+            {
+                var asyncMessages = Context.Channel.GetMessagesAsync(limit: count % 100);
+
+                await foreach (var messages in asyncMessages)
+                {
+                    foreach (var item in messages)
+                    {
+                        await item.DeleteAsync(new RequestOptions() { Timeout = 5000 });
+                    }
+                }
+
+                count /= 100;
+            }
+        }
     }
 
     public class ExpressionEvaluator
     {
         public static string Eval(string code)
         {
-            CSharpCodeProvider codeProvider = new CSharpCodeProvider();
+            CSharpCodeProvider codeProvider = new();
             CompilerResults results =
                 codeProvider
                 .CompileAssemblyFromSource(new CompilerParameters(), new string[] { code });

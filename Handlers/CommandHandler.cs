@@ -48,6 +48,12 @@ namespace Discord_Bot.Handlers
 
             var context = new SocketCommandContext(_client, socketMessage as SocketUserMessage);
 
+            // Удаление входящих сообщений
+            /*Task.Run(() =>
+            {
+                context.Message.DeleteAsync();
+            });*/
+
             if (!message.HasStringPrefix(GlobalData.Config.GetPrefix(context.Guild.Id), ref argPos)) return Task.CompletedTask;
 
             var result = _commands.ExecuteAsync(context, argPos, _services, MultiMatchHandling.Best);
