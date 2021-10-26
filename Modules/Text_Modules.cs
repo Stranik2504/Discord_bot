@@ -14,6 +14,7 @@ using System.Reflection;
 using Discord_Bot.Attributes;
 
 using static System.Diagnostics.Debug;
+using Discord.WebSocket;
 
 namespace Discord_Bot.Modules
 {
@@ -137,27 +138,17 @@ namespace Discord_Bot.Modules
         }
 
         [Command("dm")]
-        [Accesses(Access.Admin)]
-        [NonAccessesUsers(307764896219791360)]
+        [AccessesUser(452597784516886538)]
         [Summary("Команда для удаление последних n сообщений")]
         public async Task DeleteLastMessages([Remainder] int count = 1)
         {
-            await Context.Message.DeleteAsync();
+            var messages = await Context.Channel.GetMessagesAsync(count + 1).FlattenAsync();
 
-            while (count > 0)
-            {
-                var asyncMessages = Context.Channel.GetMessagesAsync(limit: count % 100);
+            await (Context.Channel as SocketTextChannel).DeleteMessagesAsync(messages);
 
-                await foreach (var messages in asyncMessages)
-                {
-                    foreach (var item in messages)
-                    {
-                        await item.DeleteAsync(new RequestOptions() { Timeout = 5000 });
-                    }
-                }
-
-                count /= 100;
-            }
+            var message = await ReplyAsync("The messages have been deleted");
+            await Task.Delay(3000);
+            await message.DeleteAsync();
         }
     }
 
