@@ -2,6 +2,7 @@
 using Discord;
 using Discord.Commands;
 using Discord.WebSocket;
+using Discord_Bot.Modules;
 using Discord_Bot.Services;
 using Microsoft.Extensions.DependencyInjection;
 using System;
@@ -17,10 +18,13 @@ namespace Discord_Bot.Handlers
         private readonly CommandService _commands;
         private readonly IServiceProvider _services;
 
+        private readonly Discord.Interactions.InteractionService _interactionService;
+
         public CommandHandler(IServiceProvider services)
         {
             _commands = services.GetRequiredService<CommandService>();
             _client = services.GetRequiredService<DiscordSocketClient>();
+            _interactionService = services.GetRequiredService<Discord.Interactions.InteractionService>();
             _services = services;
 
             HookEvents();
@@ -31,15 +35,23 @@ namespace Discord_Bot.Handlers
             await _commands.AddModulesAsync(
                 assembly: Assembly.GetEntryAssembly(),
                 services: _services);
+
+            await _interactionService.AddModulesAsync(Assembly.GetEntryAssembly(), _services);
         }
 
         public void HookEvents()
         {
             _commands.CommandExecuted += CommandExecutedAsync;
+            _client.SlashCommandExecuted += async (command) =>
+            {
+                var ctx = new Discord.Interactions.SocketInteractionContext<SocketSlashCommand>(_client, command);
+                await _interactionService.ExecuteCommandAsync(ctx, _services);
+            };
+
             _commands.Log += LogAsync;
 
             _client.MessageReceived += HandleCommandAsync;
-            _client.UserVoiceStateUpdated += async (socketUser, oldStatus, newStatus) =>
+            /*_client.UserVoiceStateUpdated += async (socketUser, oldStatus, newStatus) =>
             {
                 var user = socketUser as SocketGuildUser;
 
@@ -57,7 +69,7 @@ namespace Discord_Bot.Handlers
 
                 if (user.VoiceState.HasValue && user.VoiceState.Value.IsDeafened == true && user.Id == 452597784516886538)
                     await user.ModifyAsync(x => x.Deaf = false);
-            };
+            };*/
             
         }
 
@@ -68,20 +80,9 @@ namespace Discord_Bot.Handlers
 
             var context = new SocketCommandContext(_client, socketMessage as SocketUserMessage);
 
-            // Удаление входящих сообщений
-            /*Task.Run(() =>
-            {
-                context.Message.DeleteAsync();
-            });*/
-
             if (!message.HasStringPrefix(GlobalData.Config.GetPrefix(context.Guild.Id), ref argPos)) return Task.CompletedTask;
 
             var result = _commands.ExecuteAsync(context, argPos, _services, MultiMatchHandling.Best);
-
-            /*if (!result.Result.IsSuccess)
-            {
-                context.Channel.SendMessageAsync(result.Result.ErrorReason);
-            }*/
 
             return result;
         }

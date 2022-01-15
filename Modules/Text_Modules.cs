@@ -18,6 +18,36 @@ using Discord.WebSocket;
 
 namespace Discord_Bot.Modules
 {
+    public class SlashTextModule : Discord.Interactions.InteractionModuleBase<Discord.Interactions.SocketInteractionContext<SocketSlashCommand>>
+    {
+        /*[Discord.Interactions.ComponentInteraction("send")]
+        [Discord.Interactions.SlashCommand("send", "Команда для отправки сообщения от имени бота")]
+        [Accesses(Access.Admin)]
+        [Summary("Команда для отправки сообщения от имени бота")]
+        public async Task Send([Remainder] string text)
+        {
+            await Context.Interaction.RespondAsync(text);
+        }*/
+
+        [Discord.Interactions.SlashCommand("cnt_last", "Команда для получения количеста сообщений одного типа из последних 100")]
+        [AccessesUser(452597784516886538)]
+        public async Task CountLast()
+        {
+            var messages = (await Context.Channel.GetMessagesAsync(100).FlattenAsync()).ToList();
+
+            var typeMessToDelete = messages.ToList()[0];
+            var cnt = 0;
+
+            for (int i = 0; i < messages.Count; i++)
+            {
+                if (typeMessToDelete.Content == messages[i].Content)
+                    cnt++;
+            }
+
+            await Context.Interaction.RespondAsync($"Count: {cnt}");
+        }
+    }
+
     public class Text_Modules : ModuleBase<SocketCommandContext>
     {
         public CommandService Commands { get; set; }
@@ -163,6 +193,7 @@ namespace Discord_Bot.Modules
                 await Task.Delay(1000);
             }
 
+            
             var message = await ReplyAsync("The messages have been deleted");
             await Task.Delay(3000);
             await message.DeleteAsync();
@@ -171,7 +202,7 @@ namespace Discord_Bot.Modules
         [Command("cnt")]
         [AccessesUser(452597784516886538)]
         [Summary("Команда для получения количеста сообщений одного типа из последних 100")]
-        public async Task CountLast([Remainder] int count = 1)
+        public async Task CountLast()
         {
             var messages = (await Context.Channel.GetMessagesAsync(100).FlattenAsync()).ToList();
 

@@ -42,7 +42,9 @@ namespace Discord_Bot.Modules
         public async Task Skip([Remainder] int count = 1) => await Output(await AudioService.SkipTrackAsync(Context.Guild, count));
 
         [Command("volume")]
-        public async Task Volume(int volume) => await Output(await AudioService.SetVolumeAsync(Context.Guild, volume));
+        
+        
+        public async Task Volume([Discord.Interactions.MaxValue(150)][Discord.Interactions.MinValue(1)] int volume) => await Output(await AudioService.SetVolumeAsync(Context.Guild, volume));
 
         [Command("pause")]
         public async Task Pause() => await Output(await AudioService.PauseAsync(Context.Guild));

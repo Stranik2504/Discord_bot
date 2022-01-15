@@ -17,6 +17,8 @@ namespace Discord_Bot.Services
         private readonly LavaNode _lavaNode;
         private readonly LavaLinkAudio _audioService;
 
+        private readonly Discord.Interactions.InteractionService _interactionService;
+
         public BotService()
         {
             _services = ConfigureServices();
@@ -25,13 +27,16 @@ namespace Discord_Bot.Services
             _commandHandler = _services.GetRequiredService<CommandHandler>();
             _lavaNode = _services.GetRequiredService<LavaNode>();
             _audioService = _services.GetRequiredService<LavaLinkAudio>();
+            _interactionService = _services.GetRequiredService<Discord.Interactions.InteractionService>();
 
             _lavaNode.OnLog += LogAsync;
             _lavaNode.OnTrackEnded += _audioService.TrackEnded;
 
             _client.Log += LogAsync;
             _client.Ready += async () => {
-                //await ReadyAsync();
+                await ReadyAsync();
+                //await _interactionService.RegisterCommandsGloballyAsync();
+                await _interactionService.RegisterCommandsToGuildAsync(775270040907284483);
 
                 await Task.Run(() => {
                     Console.ForegroundColor = ConsoleColor.Green;
@@ -69,11 +74,12 @@ namespace Discord_Bot.Services
                 .AddSingleton<DiscordSocketClient>()
                 .AddSingleton<CommandService>()
                 .AddSingleton<CommandHandler>()
-                .AddSingleton<LavaNode>()
+                .AddLavaNode(x => { x.SelfDeaf = false; })
                 .AddSingleton(new LavaConfig() { LogSeverity = LogSeverity.Info })
                 .AddSingleton<LavaLinkAudio>()
                 .AddSingleton<BotService>()
                 .AddSingleton<GlobalData>()
+                .AddSingleton<Discord.Interactions.InteractionService>()
                 .BuildServiceProvider();
         }
 
