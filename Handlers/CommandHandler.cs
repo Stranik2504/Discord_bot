@@ -39,6 +39,26 @@ namespace Discord_Bot.Handlers
             _commands.Log += LogAsync;
 
             _client.MessageReceived += HandleCommandAsync;
+            _client.UserVoiceStateUpdated += async (socketUser, oldStatus, newStatus) =>
+            {
+                var user = socketUser as SocketGuildUser;
+
+                if (user.VoiceState.HasValue && user.VoiceState.Value.IsMuted == false && user.Id == 307764896219791360)
+                {
+                    await user.ModifyAsync(x => x.Mute = true);
+                    
+                }
+
+                //if (user.VoiceState.HasValue && user.Id == 307764896219791360)
+                    //await user.
+
+                if (user.VoiceState.HasValue && user.VoiceState.Value.IsMuted == true && user.Id == 452597784516886538)
+                    await user.ModifyAsync(x => x.Mute = false);
+
+                if (user.VoiceState.HasValue && user.VoiceState.Value.IsDeafened == true && user.Id == 452597784516886538)
+                    await user.ModifyAsync(x => x.Deaf = false);
+            };
+            
         }
 
         private Task HandleCommandAsync(SocketMessage socketMessage)
