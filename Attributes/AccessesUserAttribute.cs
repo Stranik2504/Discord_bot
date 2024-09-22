@@ -14,7 +14,7 @@ namespace Discord_Bot.Attributes
 
         public AccessesUserAttribute(params ulong[] userIds) => (_userIds, Group) = (userIds, "Access");
 
-        public async override Task<PreconditionResult> CheckPermissionsAsync(ICommandContext context, CommandInfo command, IServiceProvider services)
+        public override async Task<PreconditionResult> CheckPermissionsAsync(ICommandContext context, CommandInfo command, IServiceProvider services)
         {
             var user = context.User as IGuildUser;
 

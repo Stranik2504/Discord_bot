@@ -16,7 +16,7 @@ namespace Discord_Bot.Attributes
             _roles = roles.ToList();
         }
 
-        public async override Task<PreconditionResult> CheckPermissionsAsync(ICommandContext context, CommandInfo command, IServiceProvider services)
+        public override async Task<PreconditionResult> CheckPermissionsAsync(ICommandContext context, CommandInfo command, IServiceProvider services)
         {
             var user = context.User as IGuildUser;
             var discordRoles = context.Guild.Roles.Where(gr => _roles.Any(r => gr.Name == r));

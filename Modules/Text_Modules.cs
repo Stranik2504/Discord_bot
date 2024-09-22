@@ -13,6 +13,8 @@ using System.CodeDom.Compiler;
 using System.Reflection;
 using Discord_Bot.Attributes;
 
+using System.Threading;
+
 using static System.Diagnostics.Debug;
 using Discord.WebSocket;
 
@@ -20,16 +22,16 @@ namespace Discord_Bot.Modules
 {
     public class SlashTextModule : Discord.Interactions.InteractionModuleBase<Discord.Interactions.SocketInteractionContext<SocketSlashCommand>>
     {
-        /*[Discord.Interactions.ComponentInteraction("send")]
+        [Discord.Interactions.ComponentInteraction("send")]
         [Discord.Interactions.SlashCommand("send", "Команда для отправки сообщения от имени бота")]
         [Accesses(Access.Admin)]
         [Summary("Команда для отправки сообщения от имени бота")]
         public async Task Send([Remainder] string text)
         {
             await Context.Interaction.RespondAsync(text);
-        }*/
+        }
 
-        [Discord.Interactions.SlashCommand("cnt_last", "Команда для получения количеста сообщений одного типа из последних 100")]
+        [Discord.Interactions.SlashCommand("cnt_last", "Команда для получения количества сообщений одного типа из последних 100")]
         [AccessesUser(452597784516886538)]
         public async Task CountLast()
         {
@@ -53,10 +55,15 @@ namespace Discord_Bot.Modules
         public CommandService Commands { get; set; }
 
         [Command("ping")]
-        [AccessesUser(452597784516886538)]
         [Summary("Тестовая команда")]
         public async Task Pong()
         {
+            if (Context.User.Id == 307764896219791360)
+            {
+                await ReplyAsync("Не юзай эту команду");
+                return;
+            }
+
             await ReplyAsync("PONG!");
         }
 
@@ -90,7 +97,7 @@ namespace Discord_Bot.Modules
         [Summary("Команда для выполнения кода во входной строке")]
         public async Task Evals([Remainder] string text)
         {
-            await ReplyAsync(ExpressionEvaluator.Eval(text));
+            await ReplyAsync(ExpressionEvaluator.Eval(text).ToString());
         }
 
         [Command("send")]
@@ -166,12 +173,47 @@ namespace Discord_Bot.Modules
             await ReplyAsync(output);
         }
 
-        [Command("dm")]
+        [Command("unmute")]
         [AccessesUser(452597784516886538)]
+        public async Task UpdateUnmute()
+        {
+            await Context.Message.DeleteAsync();
+            CommandHandler.Unmute = !CommandHandler.Unmute;
+
+            var message = await ReplyAsync("Ok");
+            await Task.Delay(1000);
+            await message.DeleteAsync();
+        }
+
+        [Command("mute")]
+        [AccessesUser(452597784516886538)]
+        public async Task UpdateAllMute([Remainder]SocketGuildUser user)
+        {
+            await Context.Message.DeleteAsync();
+            CommandHandler.Mute = !CommandHandler.Mute;
+
+            if (CommandHandler.Mute)
+                ThreadPool.QueueUserWorkItem(async (x) => { 
+                    while(CommandHandler.Mute)
+                    {
+                        if (user.VoiceState.HasValue && (user.VoiceState.Value.IsMuted == false || user.VoiceState.Value.IsDeafened == false))
+                            await user.ModifyAsync(x => { x.Mute = true; }); //x.Deaf = true; });
+
+                        await Task.Delay(50);
+                    }   
+                }, null);
+
+            var message = await ReplyAsync("Ok");
+            await Task.Delay(1000);
+            await message.DeleteAsync();
+        }
+
+        [Command("dm")]
+        [AccessesUser(452597784516886538, 407939230212423682)]
         [Summary("Команда для удаление последних n сообщений")]
         public async Task DeleteLastMessages([Remainder] int count = 1)
         {
-            var messages = await Context.Channel.GetMessagesAsync(count + 1).FlattenAsync();
+            var messages = await Context.Channel.GetMessagesAsync(count).FlattenAsync();
 
             await (Context.Channel as SocketTextChannel).DeleteMessagesAsync(messages);
 
@@ -181,11 +223,11 @@ namespace Discord_Bot.Modules
         }
 
         [Command("mdm")]
-        [AccessesUser(452597784516886538)]
+        [AccessesUser(452597784516886538, 407939230212423682)]
         [Summary("Команда для удаление последних n сообщений, отправленных более 2-х недель назад")]
         public async Task DeleteLastMessages2([Remainder] int count = 1)
         {
-            var messages = await Context.Channel.GetMessagesAsync(count + 1).FlattenAsync();
+            var messages = await Context.Channel.GetMessagesAsync(count).FlattenAsync();
 
             foreach (var item in messages)
             {
@@ -222,13 +264,29 @@ namespace Discord_Bot.Modules
             await ReplyAsync($"Count: {cnt}");
         }
 
+        [Command("repeate")]
+        //[AccessesUser(452597784516886538)]
+        public async Task Repeate(uint cnt = 1, [Remainder] string text = "None")
+        {
+            await Context.Message.DeleteAsync();
+            for (uint i = 0; i < cnt; i++)
+            {
+                await ReplyAsync(text);
+            }
+
+            var message = await ReplyAsync("Repeate ended");
+            await Task.Delay(1000);
+            await message.DeleteAsync();
+        }
+
         [Command("bullying")]
         [Alias("bllng")]
-        [AccessesUser(452597784516886538)]
+        [AccessesUser(452597784516886538, 407939230212423682)]
         [Summary("Команда для удаления все сообщений из 100 последних в канале от пользователя")]
-        public async Task Bullying([Remainder] IUser user)
+        public async Task Bullying(string user = "<@!893213896784093266>")
         {
-            var userId = user.Id;
+            await Context.Message.DeleteAsync();
+            var userId = ulong.Parse(user.Replace("<", "").Replace(">", "").Replace("@", "").Replace("!", ""));
             var messages = new List<IMessage>();
 
             foreach (var channel in Context.Guild.Channels)
@@ -247,7 +305,8 @@ namespace Discord_Bot.Modules
                                 messages.Add(x);
                     });
 
-                await (channel as SocketTextChannel).DeleteMessagesAsync(messages);
+                if (messages.Count > 0)
+                    await (channel as SocketTextChannel).DeleteMessagesAsync(messages);
             }
 
             var message = await ReplyAsync("Bullying ended");
@@ -258,17 +317,52 @@ namespace Discord_Bot.Modules
 
     public class ExpressionEvaluator
     {
-        public static string Eval(string code)
+        public static object Eval(string sCSCode)
         {
-            CSharpCodeProvider codeProvider = new();
-            CompilerResults results =
-                codeProvider
-                .CompileAssemblyFromSource(new CompilerParameters(), new string[] { code });
 
-            Assembly assembly = results.CompiledAssembly;
-            dynamic evaluator =
-                Activator.CreateInstance(assembly.GetType("MyAssembly.Evaluator"));
-            return evaluator.Eval();
+            CSharpCodeProvider c = new CSharpCodeProvider();
+            CompilerParameters cp = new CompilerParameters();
+
+            cp.ReferencedAssemblies.Add("system.dll");
+            cp.ReferencedAssemblies.Add("system.xml.dll");
+            cp.ReferencedAssemblies.Add("system.data.dll");
+            cp.ReferencedAssemblies.Add("system.windows.forms.dll");
+            cp.ReferencedAssemblies.Add("system.drawing.dll");
+
+            cp.CompilerOptions = "/t:library";
+            cp.GenerateInMemory = true;
+
+            StringBuilder sb = new StringBuilder("");
+            sb.Append("using System;\n");
+            sb.Append("using System.Xml;\n");
+            sb.Append("using System.Data;\n");
+            sb.Append("using System.Data.SqlClient;\n");
+            sb.Append("using System.Windows.Forms;\n");
+            sb.Append("using System.Drawing;\n");
+
+            sb.Append("namespace CSCodeEvaler{ \n");
+            sb.Append("public class CSCodeEvaler{ \n");
+            sb.Append("public object EvalCode(){\n");
+            sb.Append("return " + sCSCode + "; \n");
+            sb.Append("} \n");
+            sb.Append("} \n");
+            sb.Append("}\n");
+
+            CompilerResults cr = c.CompileAssemblyFromSource(cp, sb.ToString());
+            if (cr.Errors.Count > 0)
+            {
+                return null;
+            }
+
+            System.Reflection.Assembly a = cr.CompiledAssembly;
+            object o = a.CreateInstance("CSCodeEvaler.CSCodeEvaler");
+
+            Type t = o.GetType();
+            MethodInfo mi = t.GetMethod("EvalCode");
+
+            object s = mi.Invoke(o, null);
+            return s;
+
         }
     }
 }

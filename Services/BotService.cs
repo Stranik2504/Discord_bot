@@ -35,8 +35,9 @@ namespace Discord_Bot.Services
             _client.Log += LogAsync;
             _client.Ready += async () => {
                 await ReadyAsync();
-                //await _interactionService.RegisterCommandsGloballyAsync();
+                await _interactionService.RegisterCommandsGloballyAsync();
                 await _interactionService.RegisterCommandsToGuildAsync(775270040907284483);
+                await _interactionService.RegisterCommandsToGuildAsync(751458906030604339);
 
                 await Task.Run(() => {
                     Console.ForegroundColor = ConsoleColor.Green;

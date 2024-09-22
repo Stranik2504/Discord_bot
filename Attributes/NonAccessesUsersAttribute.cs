@@ -6,11 +6,9 @@ using System.Threading.Tasks;
 
 namespace Discord_Bot.Attributes
 {
-    public class NonAccessesUsersAttribute : PreconditionAttribute
+    public class NonAccessesUsersAttribute(params ulong[] userIds) : PreconditionAttribute
     {
-        private readonly ulong[] _userIds;
-
-        public NonAccessesUsersAttribute(params ulong[] userIds) => _userIds = userIds.ToArray();
+        private readonly ulong[] _userIds = userIds.ToArray();
 
         public override Task<PreconditionResult> CheckPermissionsAsync(ICommandContext context, CommandInfo command, IServiceProvider services)
         {
